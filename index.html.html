@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sorteio do Dia 🎰</title>
+  <!-- Tailwind CSS for modern responsive styling -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Canvas Confetti Library for victory celebration effect -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <!-- FontAwesome for playful icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+    
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #0b0f19;
+    }
+
+    /* Custom wheel container styling */
+    .wheel-shadow {
+      box-shadow: 0 0 50px rgba(99, 102, 241, 0.25), inset 0 0 15px rgba(0,0,0,0.5);
+    }
+
+    /* Custom CSS animations for victory popup */
+    @keyframes popIn {
+      0% { transform: scale(0.8) translateY(20px); opacity: 0; }
+      100% { transform: scale(1) translateY(0); opacity: 1; }
+    }
+    .animate-pop-in {
+      animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+
+    /* Pulsing button effect for re-triggering */
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 20px rgba(236, 72, 153, 0.4); }
+      50% { box-shadow: 0 0 35px rgba(236, 72, 153, 0.8); }
+    }
+    .pulse-glow {
+      animation: pulseGlow 2s infinite;
+    }
+  </style>
+</head>
+<body class="min-h-screen text-slate-100 flex flex-col items-center justify-between p-4 overflow-x-hidden">
+
+  <!-- Top Navigation / Title -->
+  <header class="w-full max-w-md text-center pt-4 pb-2">
+    <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-950/80 border border-indigo-800/50 text-indigo-300 text-xs font-semibold uppercase tracking-wider mb-3">
+      <i class="fa-solid fa-wifi text-emerald-400 animate-pulse"></i> Leitura NFC Confirmada
+    </div>
+    <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-200 to-indigo-300 bg-clip-text text-transparent">
+      Sorteio Oficial
+    </h1>
+    <p class="text-xs sm:text-sm text-slate-400 mt-1">Verificando ganhador instantâneo...</p>
+  </header>
+
+  <!-- Main Interactive Section -->
+  <main class="w-full max-w-md flex flex-col items-center justify-center my-auto py-4">
+    
+    <!-- Pointer and Wheel Container -->
+    <div class="relative w-72 h-72 sm:w-80 sm:h-80 flex items-center justify-center my-4">
+      
+      <!-- Arrow Pointer -->
+      <div class="absolute -top-3 left-1/2 -translate-x-1/2 z-20 w-8 h-10 drop-shadow-lg flex items-center justify-center">
+        <div class="w-0 h-0 border-l-[14px] border-l-transparent border-r-[14px] border-r-transparent border-t-[28px] border-t-amber-400 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]"></div>
+      </div>
+
+      <!-- Outer Decorative Ring -->
+      <div class="absolute inset-0 rounded-full border-4 border-indigo-500/30 bg-slate-900/80 wheel-shadow"></div>
+
+      <!-- Canvas HTML5 Wheel -->
+      <canvas id="rouletteCanvas" width="320" height="320" class="w-full h-full rounded-full z-10 transition-transform duration-[4000ms] ease-[cubic-bezier(0.15,0.85,0.15,1)]"></canvas>
+
+      <!-- Center Pin -->
+      <div class="absolute z-20 w-12 h-12 rounded-full bg-gradient-to-tr from-slate-800 to-slate-700 border-2 border-amber-400/80 flex items-center justify-center shadow-lg">
+        <i class="fa-solid fa-crown text-amber-400 text-sm"></i>
+      </div>
+    </div>
+
+    <!-- Dynamic Status Message -->
+    <div class="mt-4 text-center min-h-[90px] flex flex-col items-center justify-center w-full px-4">
+      <div id="spinningStatus" class="flex items-center gap-2 text-indigo-400 font-semibold text-lg">
+        <svg class="animate-spin h-5 w-5 text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <span>GIRANDO A ROLETA...</span>
+      </div>
+
+      <!-- Result Card (Initially Hidden) -->
+      <div id="resultCard" class="hidden animate-pop-in w-full bg-gradient-to-r from-amber-500/20 via-pink-500/20 to-purple-500/20 border border-amber-400/40 p-4 rounded-2xl text-center shadow-xl backdrop-blur-md">
+        <div class="inline-block p-2 bg-amber-400/20 rounded-full mb-1">
+          <span class="text-3xl">🎉</span>
+        </div>
+        <h2 class="text-xl sm:text-2xl font-black text-amber-300 tracking-wide uppercase">
+          PARABÉNS!
+        </h2>
+        <p class="text-sm sm:text-base font-bold text-white mt-0.5">
+          Você foi sorteado 🥳
+        </p>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer & Reset Option -->
+  <footer class="w-full max-w-md text-center py-4">
+    <button id="resetBtn" class="hidden text-xs text-slate-400 hover:text-slate-200 underline decoration-slate-600 underline-offset-4 transition-colors">
+      <i class="fa-solid fa-rotate-right mr-1"></i> Girar novamente
+    </button>
+  </footer>
+
+  <script>
+    // Configurações das fatias da roleta
+    const segments = [
+      { label: 'Sorteado 🥳', bg: '#ec4899', text: '#ffffff' },
+      { label: 'Quase!', bg: '#3b82f6', text: '#ffffff' },
+      { label: 'Tente de Novo', bg: '#8b5cf6', text: '#ffffff' },
+      { label: 'Passa a Vez', bg: '#10b981', text: '#ffffff' },
+      { label: 'Sorteado 🥳', bg: '#f59e0b', text: '#ffffff' },
+      { label: 'Quase lá!', bg: '#6366f1', text: '#ffffff' },
+      { label: 'Não foi dessa vez', bg: '#06b6d4', text: '#ffffff' },
+      { label: 'Sorteado 🥳', bg: '#ef4444', text: '#ffffff' }
+    ];
+
+    const canvas = document.getElementById('rouletteCanvas');
+    const ctx = canvas.getContext('2d');
+    const spinningStatus = document.getElementById('spinningStatus');
+    const resultCard = document.getElementById('resultCard');
+    const resetBtn = document.getElementById('resetBtn');
+
+    let currentRotation = 0;
+    const numSegments = segments.length;
+    const arcSize = (2 * Math.PI) / numSegments;
+
+    // Desenha a roleta no Canvas
+    function drawWheel() {
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const radius = canvas.width / 2 - 8;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      for (let i = 0; i < numSegments; i++) {
+        const angle = i * arcSize;
+        
+        // Desenha a fatia
+        ctx.beginPath();
+        ctx.fillStyle = segments[i].bg;
+        ctx.moveTo(centerX, centerY);
+        ctx.arc(centerX, centerY, radius, angle, angle + arcSize);
+        ctx.lineTo(centerX, centerY);
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = 'rgba(15, 23, 42, 0.4)';
+        ctx.stroke();
+
+        // Adiciona o texto em cada fatia
+        ctx.save();
+        ctx.translate(centerX, centerY);
+        ctx.rotate(angle + arcSize / 2);
+        ctx.textAlign = 'right';
+        ctx.fillStyle = segments[i].text;
+        ctx.font = 'bold 12px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText(segments[i].label, radius - 15, 4);
+        ctx.restore();
+      }
+    }
+
+    // Som sintético de "Tick" (Web Audio API)
+    function playClickSound() {
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(600, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(120, ctx.currentTime + 0.04);
+        gain.gain.setValueAtTime(0.15, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.04);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.04);
+      } catch (e) {
+        // Ignora caso áudio não seja permitido sem interação do usuário
+      }
+    }
+
+    // Função que aciona a rotação da roleta
+    function spinWheel() {
+      // Esconde o card de resultado se estiver visível
+      resultCard.classList.add('hidden');
+      spinningStatus.classList.remove('hidden');
+      resetBtn.classList.add('hidden');
+
+      // Posição alvo: Fatia 0 ("Sorteado 🥳")
+      // Fatia 0 está entre 0 e arcSize radianos.
+      // O ponteiro fica no topo (270 graus ou 1.5 * Math.PI)
+      // Para a fatia 0 ficar no topo, a roleta precisa girar até o ângulo desejado.
+      
+      const targetSegmentIndex = 0; // Garantido que vai cair no 'Sorteado 🥳'
+      const segmentAngle = 360 / numSegments;
+      
+      // Cálculo exato para a fatia parar diretamente abaixo do ponteiro no topo
+      const targetDegree = 360 - (targetSegmentIndex * segmentAngle) - (segmentAngle / 2) - 90;
+      
+      // Adiciona 6 giros completos (6 * 360 = 2160 graus) para dar efeito de velocidade
+      const fullRotations = 360 * 6;
+      
+      // Calcula o ângulo final garantido
+      const finalRotation = currentRotation + fullRotations + (targetDegree - (currentRotation % 360));
+
+      currentRotation = finalRotation;
+      canvas.style.transform = `rotate(${finalRotation}deg)`;
+
+      // Simula sons de estalo da roleta enquanto gira
+      let clicks = 0;
+      const interval = setInterval(() => {
+        clicks++;
+        playClickSound();
+        if (clicks > 18) clearInterval(interval);
+      }, 180);
+
+      // Executa o efeito de vitória após término da animação (4000ms)
+      setTimeout(() => {
+        clearInterval(interval);
+        showVictory();
+      }, 4100);
+    }
+
+    function showVictory() {
+      spinningStatus.classList.add('hidden');
+      resultCard.classList.remove('hidden');
+      resetBtn.classList.remove('hidden');
+
+      // Explosão de confetes festivos
+      if (typeof confetti === 'function') {
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 }
+        });
+
+        setTimeout(() => {
+          confetti({
+            particleCount: 50,
+            angle: 60,
+            spread: 55,
+            origin: { x: 0 }
+          });
+          confetti({
+            particleCount: 50,
+            angle: 120,
+            spread: 55,
+            origin: { x: 1 }
+          });
+        }, 300);
+      }
+    }
+
+    // Inicialização ao carregar a página
+    window.addEventListener('DOMContentLoaded', () => {
+      drawWheel();
+      // Inicia o giro automaticamente assim que abre o link da tag NFC
+      setTimeout(() => {
+        spinWheel();
+      }, 600);
+    });
+
+    // Permite testar ou rodar novamente
+    resetBtn.addEventListener('click', () => {
+      spinWheel();
+    });
+  </script>
+</body>
+</html>
